@@ -1,6 +1,5 @@
 use std::f32::consts::PI;
 use miniquad::{Bindings, Pipeline, RenderingBackend, UniformsSource};
-use crate::shader;
 
 pub struct Shape{
     // Vertex/Index buffers & Texture

@@ -1,7 +1,7 @@
 use miniquad::{Backend, Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderSource, UniformsSource, VertexAttribute, VertexFormat};
-use crate::{shader };
 use crate::shapes::shared_c_resources::{Vec2, Vertex};
 use crate::shapes::shape::Shape;
+use crate::shapes::default_shader::default_shader;
 
 pub struct Square;
 impl Square {
@@ -12,7 +12,6 @@ impl Square {
                width: f32,
                height: f32) -> Shape {
 
-        #[rustfmt::skip]
         let vertices: [Vertex; 4] = [
             Vertex { pos : Vec2 { x: -width + x, y: -height + y }, uv: Vec2 { x: 0., y: 0. } },
             Vertex { pos : Vec2 { x: width + x, y: -height + y }, uv: Vec2 { x: 1., y: 0. } },
@@ -53,14 +52,14 @@ impl Square {
             .new_shader(
                 match context.info().backend {
                     Backend::OpenGl => ShaderSource::Glsl {
-                        vertex: shader::VERTEX,
-                        fragment: shader::FRAGMENT,
+                        vertex: default_shader::VERTEX,
+                        fragment: default_shader::FRAGMENT,
                     },
                     Backend::Metal => ShaderSource::Msl {
-                        program: shader::METAL,
+                        program: default_shader::METAL,
                     },
                 },
-                shader::meta(),
+                default_shader::meta(),
             )
             .unwrap();
 
