@@ -1,14 +1,15 @@
 mod shapes;
 
+use std::any::Any;
+use std::ops::Deref;
 use miniquad::*;
-use crate::shapes::background::Background;
 use crate::shapes::shape::Shape;
 use crate::shapes::square::Square;
-use crate::shapes::triangle::Triangle;
+use crate::shapes::triangle::{Triangle};
 
 struct Stage<> {
     context: Box<dyn RenderingBackend>,
-    shapes: Vec<Shape>
+    shapes: Vec<Box<dyn Shape>>
 }
 
 impl<'b> Stage<> {
@@ -16,14 +17,18 @@ impl<'b> Stage<> {
     pub fn new<>() -> Stage<> {
         let mut context: Box<dyn RenderingBackend> = window::new_rendering_backend();
 
+
+        let background = Box::new(Square::new(&mut context, -0.95f32, 0.95f32, 2., 2., 1.000, 0.937, 0.835));
+        let green_triangle = Box::new(Triangle::new(&mut context, -0.25f32, -0.2f32, 0.05, 0.05, 0.0, 1f32, 0.0));
+        let green_square = Box::new(Square::new(&mut context, -0.4f32, -0.2f32, 0.05, 0.05, 0.0, 1f32, 0.0));
+
+
         Stage {
             // Order is important for Z drawing.
             shapes: vec![
-                Background::new(&mut context),
-                Square::new(&mut context, 0.25f32, 0.0f32, 0.05, 0.05),
-                Triangle::new(&mut context, -0.25f32, -0.2f32, 0.05, 0.05),
-                Square::new(&mut context, 0.45f32, 0.0f32, 0.05, 0.05),
-                Square::new(&mut context, -0.75f32, 0.0f32, 0.05, 0.05),
+                background,
+                green_triangle,
+                green_square,
             ],
             context,
         }
@@ -34,29 +39,23 @@ impl EventHandler for Stage<> {
     fn update(&mut self) {}
 
     fn draw(&mut self) {
-        let t = date::now();
-
+        // Begin opengl pass.
         self.context.begin_default_pass(Default::default());
 
-        // println!("Number of shapes: {}", self.shapes.len());
-        for shape in &self.shapes {
-            shape.draw(&mut self.context);
-        }
-        self.context.end_render_pass();
+        // Draw each opengl object.
+        // Each has its own impl.
+        &self.shapes.iter_mut().for_each(|mut a| a.draw(&mut self.context, true));
 
+        // End opengl pass.
+        self.context.end_render_pass();
         self.context.commit_frame();
     }
+
 }
 
 fn main() {
     let mut conf = conf::Conf::default();
-    let metal = std::env::args().nth(1).as_deref() == Some("metal");
-    conf.platform.apple_gfx_api = if metal {
-        conf::AppleGfxApi::Metal
-    } else {
-        conf::AppleGfxApi::OpenGl
-    };
-
-    miniquad::start(conf, move || Box::new(Stage::new()));
+    conf.platform.apple_gfx_api = conf::AppleGfxApi::OpenGl;
+    start(conf, move || Box::new(Stage::new()));
 }
 

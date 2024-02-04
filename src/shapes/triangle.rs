@@ -1,19 +1,101 @@
-use miniquad::{Backend, Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderSource, UniformsSource, VertexAttribute, VertexFormat};
+use std::any::Any;
+use miniquad::{Backend, Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderMeta, ShaderSource, UniformBlockLayout, UniformDesc, UniformsSource, UniformType, VertexAttribute, VertexFormat};
 use crate::shapes::shared_c_resources::{Vec2, Vertex};
-use crate::shapes::shape::Shape;
+use crate::shapes::shape::{BaseShape, Shape};
 use crate::shapes::default_shader::default_shader;
 
-pub struct Triangle;
+pub struct Triangle {
+    base_details: BaseShape,
+    uniforms: TriangleShaderData
+}
+
+pub struct TriangleShaderData {
+    red: f32,
+    green: f32,
+    blue: f32
+}
+
+impl TriangleShaderData {
+    pub fn get_red(&self) -> f32 {
+        self.red
+    }
+
+    pub fn get_green(&self) -> f32 {
+        self.green
+    }
+
+    pub fn get_blue(&self) -> f32 {
+        self.blue
+    }
+}
+
+fn shader_meta() -> ShaderMeta {
+    ShaderMeta {
+        images: vec!["tex".to_string()],
+        uniforms: UniformBlockLayout {
+            uniforms: vec![
+                UniformDesc::new("red", UniformType::Float1),
+                UniformDesc::new("green", UniformType::Float1),
+                UniformDesc::new("blue", UniformType::Float1),
+            ],
+        },
+    }
+}
+
+impl Shape for Triangle {
+
+    fn get_bindings(&self) -> &Bindings {
+        &self.base_details.get_bindings()
+    }
+
+    fn get_pipeline(&self) -> &Pipeline {
+        &self.base_details.get_pipeline()
+    }
+
+    fn get_segments(&self) -> i32 {
+        self.base_details.get_segments()
+    }
+
+    fn set_binding(&mut self, bindings: Bindings) {
+        self.base_details.set_binding(bindings);
+    }
+
+    fn set_pipeline(&mut self, pipeline: Pipeline) {
+        self.base_details.set_pipeline(pipeline);
+    }
+
+    fn set_segments(&mut self, segments: i32) {
+        self.base_details.set_segments(segments);
+    }
+
+    fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool) {
+        self.base_details.draw(drawing_context, false);
+
+        drawing_context.apply_uniforms(UniformsSource::table(&self.uniforms));
+
+        if draw {
+            drawing_context.draw(0, self.base_details.get_segments(), 1);
+        }
+    }
+}
+
 impl Triangle {
+
+    pub fn get_uniform(&self) -> &TriangleShaderData {
+        &self.uniforms
+    }
 
     pub fn new(context: &mut Box<dyn RenderingBackend>,
                x: f32,
                y: f32,
                width: f32,
-               height: f32) -> Shape {
+               height: f32,
+               red: f32,
+               green: f32,
+               blue: f32) -> Triangle {
 
         #[rustfmt::skip]
-        let vertices: [Vertex; 3] = [
+            let vertices: [Vertex; 3] = [
             Vertex { pos : Vec2 { x: -width + x, y: -height + y }, uv: Vec2 { x: 0., y: 0. } },
             Vertex { pos : Vec2 { x: width + x, y: -height + y }, uv: Vec2 { x: 1., y: 0. } },
             Vertex { pos : Vec2 { x, y: height + y }, uv: Vec2 { x: 1., y: 1. } },
@@ -50,16 +132,11 @@ impl Triangle {
 
         let shader = context
             .new_shader(
-                match context.info().backend {
-                    Backend::OpenGl => ShaderSource::Glsl {
-                        vertex: default_shader::VERTEX,
-                        fragment: default_shader::FRAGMENT,
-                    },
-                    Backend::Metal => ShaderSource::Msl {
-                        program: default_shader::METAL,
-                    },
+                ShaderSource::Glsl {
+                    vertex: default_shader::VERTEX,
+                    fragment: default_shader::FRAGMENT,
                 },
-                default_shader::meta(),
+                shader_meta(),
             )
             .unwrap();
 
@@ -73,11 +150,20 @@ impl Triangle {
         );
 
 
-        Shape::new (
-            bindings,
-            pipeline,
-            3
-        )
+        Triangle {
+            base_details:
+                BaseShape::new (
+                    bindings,
+                    pipeline,
+                    3
+                ),
+            uniforms:
+                TriangleShaderData {
+                    red,
+                    green,
+                    blue,
+                }
+        }
     }
 }
 

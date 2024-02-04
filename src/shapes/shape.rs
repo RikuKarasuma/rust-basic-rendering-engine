@@ -1,37 +1,72 @@
-use std::f32::consts::PI;
-use miniquad::{Bindings, Pipeline, RenderingBackend, UniformsSource};
+use std::any::Any;
+use miniquad::{Bindings, Pipeline, RenderingBackend};
 
-pub struct Shape{
+pub trait Shape {
+
+    fn get_bindings(&self) -> &Bindings;
+
+    fn get_pipeline(&self) -> &Pipeline;
+
+    fn get_segments(&self) -> i32;
+
+    fn set_binding(&mut self, bindings: Bindings);
+    fn set_pipeline(&mut self, pipeline: Pipeline);
+    fn set_segments(&mut self, segments: i32);
+
+    fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool);
+}
+
+pub struct BaseShape {
     // Vertex/Index buffers & Texture
     bindings: Bindings,
     pipeline: Pipeline,
-    segments: i32
+    segments: i32,
 }
 
-impl Shape {
+impl Shape for BaseShape {
 
-    pub fn new<'a>(bindings: Bindings, pipeline: Pipeline, segments: i32) -> Shape<> {
-        Shape {
+    fn get_bindings(&self) -> &Bindings {
+        &self.bindings
+    }
+
+    fn get_pipeline(&self) -> &Pipeline {
+        &self.pipeline
+    }
+
+    fn get_segments(&self) -> i32 {
+        self.segments
+    }
+
+    fn set_binding(&mut self, bindings: Bindings) {
+        self.bindings = bindings;
+    }
+
+    fn set_pipeline(&mut self, pipeline: Pipeline) {
+        self.pipeline = pipeline;
+    }
+
+    fn set_segments(&mut self, segments: i32) {
+        self.segments = segments;
+    }
+
+    fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool) {
+        drawing_context.apply_pipeline(&self.pipeline);
+        drawing_context.apply_bindings(&self.bindings);
+
+        if draw {
+            drawing_context.draw(0, self.segments, 1);
+        }
+    }
+}
+
+
+impl BaseShape {
+
+    pub fn new<'a>(bindings: Bindings, pipeline: Pipeline, segments: i32) -> BaseShape {
+        BaseShape {
             bindings,
             pipeline,
             segments
         }
-    }
-
-    pub fn draw(&self, drawing_context: &mut Box<dyn RenderingBackend>) {
-        drawing_context.apply_pipeline(&self.pipeline);
-        drawing_context.apply_bindings(&self.bindings);
-        let mut radius = 0.3f64;
-
-        let theta = 2.0 * PI as f64  * radius;
-
-        // drawing_context
-        //     .apply_uniforms(UniformsSource::table(&shader::Uniforms {
-        //         offset: ( 0., 0.)//( theta.cos() as f32 , theta.sin() as f32  ),
-        //     }));
-        // println!("Segs: {}", self.segments);
-        drawing_context.draw(0, self.segments, 1);
-
-        radius += radius ;
     }
 }
