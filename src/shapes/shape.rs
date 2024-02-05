@@ -1,19 +1,16 @@
-use std::any::Any;
-use miniquad::{Bindings, Pipeline, RenderingBackend};
+use miniquad::{Bindings, KeyCode, Pipeline, RenderingBackend};
 
 pub trait Shape {
 
     fn get_bindings(&self) -> &Bindings;
-
     fn get_pipeline(&self) -> &Pipeline;
-
     fn get_segments(&self) -> i32;
-
     fn set_binding(&mut self, bindings: Bindings);
     fn set_pipeline(&mut self, pipeline: Pipeline);
     fn set_segments(&mut self, segments: i32);
-
     fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool);
+    fn input_down(&mut self, key_code: KeyCode);
+    fn input_up(&mut self, key_code: KeyCode);
 }
 
 pub struct BaseShape {
@@ -57,8 +54,10 @@ impl Shape for BaseShape {
             drawing_context.draw(0, self.segments, 1);
         }
     }
-}
 
+    fn input_down(&mut self, key_code: KeyCode) {} // NOT IMPLEMENTED
+    fn input_up(&mut self, key_code: KeyCode) {} // NOT IMPLEMENTED
+}
 
 impl BaseShape {
 

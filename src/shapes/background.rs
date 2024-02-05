@@ -1,12 +1,10 @@
-use miniquad::{Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderSource, UniformsSource, VertexAttribute, VertexFormat};
+use miniquad::{Bindings, KeyCode, Pipeline, RenderingBackend};
 use crate::shapes::color::Color;
-use crate::shapes::shared_c_resources::{Vec2, Vertex};
-use crate::shapes::shape::{BaseShape, Shape};
-use crate::shapes::default_shader::default_shader;
-use crate::shapes::square::{shader_meta};
+use crate::shapes::shape::{ Shape };
+use crate::shapes::square::{ Square};
 
 pub struct Background {
-    base_details: BaseShape,
+    base_details: Square,
     uniforms: Color
 }
 
@@ -37,88 +35,36 @@ impl Shape for Background {
     }
 
     fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool) {
-        self.base_details.draw(drawing_context, false);
-
-        drawing_context.apply_uniforms(UniformsSource::table(&self.uniforms));
-
-        if draw {
-            drawing_context.draw(0, self.base_details.get_segments(), 1);
-        }
+        self.base_details.draw(drawing_context, true);
     }
+
+    fn input_down(&mut self, key_code: KeyCode) {}
+
+    fn input_up(&mut self, key_code: KeyCode) {}
 }
 impl Background {
 
     pub fn new(context: &mut Box<dyn RenderingBackend>,
-               x: f32,
-               y: f32,
-               width: f32,
-               height: f32,
                red: f32,
                green: f32,
                blue: f32) -> Background {
 
-        let vertices: [Vertex; 4] = [
-            Vertex { pos : Vec2 { x: -width + x, y: -height + y }, uv: Vec2 { x: 0., y: 0. } },
-            Vertex { pos : Vec2 { x: width + x, y: -height + y }, uv: Vec2 { x: 1., y: 0. } },
-            Vertex { pos : Vec2 { x: width + x, y: height + y }, uv: Vec2 { x: 1., y: 1. } },
-            Vertex { pos : Vec2 { x: -width + x, y: height + y }, uv: Vec2 { x: 0., y: 1. } },
-        ];
-        let vertex_buffer = context.new_buffer(
-            BufferType::VertexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(&vertices),
-        );
-
-        // Used to specify the order of the vertex indices
-        // Is used to form a square using two triangles.
-        let indices: [u16; 6] = [0, 1, 2, 0, 2, 3];
-        let index_buffer = context.new_buffer(
-            BufferType::IndexBuffer,
-            BufferUsage::Immutable,
-            BufferSource::slice(&indices),
-        );
-
-        let pixels: [u8; 4 * 4 * 4] = [
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-            0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
-        ];
-        let texture = context.new_texture_from_rgba8(4, 4, &pixels);
-
-        let bindings = Bindings {
-            vertex_buffers: vec![vertex_buffer],
-            index_buffer,
-            images: vec![texture],
-        };
-
-        let shader = context
-            .new_shader(
-                ShaderSource::Glsl {
-                    vertex: default_shader::VERTEX,
-                    fragment: default_shader::FRAGMENT,
-                },
-                shader_meta(),
-            )
-            .unwrap();
-
-        let pipeline = context.new_pipeline(
-            &[BufferLayout::default()],
-            &[
-                VertexAttribute::new("in_pos", VertexFormat::Float2),
-                VertexAttribute::new("in_uv", VertexFormat::Float2),
-            ],
-            shader,
-        );
-
         Background {
             base_details:
-            BaseShape::new (
-                bindings,
-                pipeline,
-                6
-            ),
+                // Static for now(800x600), needs to be based on the window
+                // configuration i.e window width + height.
+                // Realistically need a camera object for advanced viewing, which
+                // this background would stick to when active.
+                Square::new(
+                    context,
+                    -0.95f32,
+                    0.95f32,
+                    2.,
+                    2.,
+                    red,
+                    green,
+                    blue
+                ),
             uniforms:
                 Color::new(
                     red,

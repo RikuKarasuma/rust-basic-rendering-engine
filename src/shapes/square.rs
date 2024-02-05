@@ -1,5 +1,8 @@
-use miniquad::{Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderMeta, ShaderSource, UniformBlockLayout, UniformDesc, UniformsSource, UniformType, VertexAttribute, VertexFormat};
-use crate::shapes;
+use miniquad::{
+    Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, KeyCode,
+    Pipeline, RenderingBackend, ShaderMeta, ShaderSource, UniformBlockLayout,
+    UniformDesc, UniformsSource, UniformType, VertexAttribute, VertexFormat
+};
 use crate::shapes::color::Color;
 use crate::shapes::shared_c_resources::{Vec2, Vertex};
 use crate::shapes::shape::{BaseShape, Shape};
@@ -59,6 +62,9 @@ impl Shape for Square {
             drawing_context.draw(0, self.base_details.get_segments(), 1);
         }
     }
+
+    fn input_down(&mut self, key_code: KeyCode) {}
+    fn input_up(&mut self, key_code: KeyCode) {}
 }
 impl Square {
 

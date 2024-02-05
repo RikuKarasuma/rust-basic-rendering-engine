@@ -1,21 +1,28 @@
-use std::any::Any;
-use miniquad::{Backend, Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, Pipeline, RenderingBackend, ShaderMeta, ShaderSource, UniformBlockLayout, UniformDesc, UniformsSource, UniformType, VertexAttribute, VertexFormat};
+use miniquad::{ Bindings, BufferLayout, BufferSource, BufferType, BufferUsage, KeyCode, Pipeline, RenderingBackend, ShaderMeta, ShaderSource, UniformBlockLayout, UniformDesc, UniformsSource, UniformType, VertexAttribute, VertexFormat};
 use crate::shapes::shared_c_resources::{Vec2, Vertex};
 use crate::shapes::shape::{BaseShape, Shape};
 use crate::shapes::default_shader::default_shader;
 
 pub struct Triangle {
     base_details: BaseShape,
-    uniforms: TriangleShaderData
+    uniforms: TriangleModel
 }
 
-pub struct TriangleShaderData {
+#[repr(C)]
+pub struct TriangleModel {
     red: f32,
     green: f32,
-    blue: f32
+    blue: f32,
+    offset: Vec2,
+    input: InputModel
 }
 
-impl TriangleShaderData {
+#[repr(C)]
+pub struct InputModel {
+    keys_down: Vec<KeyCode>
+}
+
+impl TriangleModel {
     pub fn get_red(&self) -> f32 {
         self.red
     }
@@ -37,6 +44,7 @@ fn shader_meta() -> ShaderMeta {
                 UniformDesc::new("red", UniformType::Float1),
                 UniformDesc::new("green", UniformType::Float1),
                 UniformDesc::new("blue", UniformType::Float1),
+                UniformDesc::new("offset", UniformType::Float2),
             ],
         },
     }
@@ -71,18 +79,47 @@ impl Shape for Triangle {
     fn draw(&mut self, drawing_context: &mut Box<dyn RenderingBackend>, draw: bool) {
         self.base_details.draw(drawing_context, false);
 
+        const ACCEL: f32 = 0.009;
+
+        if let Some(key_code) = self.uniforms.input.keys_down.iter().position(|key_down | key_down == &KeyCode::Down) {
+            self.uniforms.offset.y -= ACCEL;
+        }
+        if let Some(key_code) = self.uniforms.input.keys_down.iter().position(|key_down | key_down == &KeyCode::Up) {
+            self.uniforms.offset.y += ACCEL;
+        }
+        if let Some(key_code) = self.uniforms.input.keys_down.iter().position(|key_down | key_down == &KeyCode::Left) {
+            self.uniforms.offset.x -= ACCEL;
+        }
+        if let Some(key_code) = self.uniforms.input.keys_down.iter().position(|key_down | key_down == &KeyCode::Right) {
+            self.uniforms.offset.x += ACCEL;
+        }
+
+        self.uniforms.red -= 0.1;
+
         drawing_context.apply_uniforms(UniformsSource::table(&self.uniforms));
 
         if draw {
             drawing_context.draw(0, self.base_details.get_segments(), 1);
         }
     }
+
+    fn input_down(&mut self, key_code: KeyCode) {
+        if let None = self.uniforms.input.keys_down.iter().position(|key_down | key_down == &key_code) {
+            self.get_uniform().input.keys_down.push(key_code);
+        }
+    }
+
+    fn input_up(&mut self, key_code: KeyCode) {
+        if let Some(found_index) = self.get_uniform().input.keys_down.iter().position(|key| key == &key_code) {
+            self.get_uniform().input.keys_down.remove(found_index);
+        }
+    }
 }
 
 impl Triangle {
 
-    pub fn get_uniform(&self) -> &TriangleShaderData {
-        &self.uniforms
+    pub fn get_uniform(&mut self) -> &mut TriangleModel {
+        &mut self.uniforms
     }
 
     pub fn new(context: &mut Box<dyn RenderingBackend>,
@@ -158,33 +195,18 @@ impl Triangle {
                     3
                 ),
             uniforms:
-                TriangleShaderData {
+                TriangleModel {
                     red,
                     green,
                     blue,
+                    offset: Vec2 {
+                        x: 0f32,
+                        y: 0f32
+                    },
+                    input: InputModel {
+                        keys_down: vec![]
+                    }
                 }
         }
     }
 }
-
-// fn generate_circle_vertices_and_indices(center_x: f32, center_y: f32, radius: f32, segments: u32) -> (Vec<Vertex>, Vec<u16>) {
-//     let mut vertices = Vec::with_capacity(segments as usize + 1);
-//     let mut indices = Vec::with_capacity(segments as usize * 3);
-//
-//     // Center vertex
-//     vertices.push(Vertex { position: [center_x, center_y] });
-//
-//     // Circle vertices
-//     for i in 0..segments {
-//         let theta = 2.0 * std::f32::consts::PI * (i as f32) / (segments as f32);
-//         let x = center_x + radius * theta.cos();
-//         let y = center_y + radius * theta.sin();
-//
-//         vertices.push(Vertex { position: [x, y] });
-//         indices.push(0);
-//         indices.push(i + 1);
-//         indices.push((i + 1) % segments);
-//     }
-//
-//     (vertices, indices)
-// }
